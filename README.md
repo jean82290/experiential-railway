@@ -1,6 +1,6 @@
 # Experiential gateway on Railway
 
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/experiential-or-ai-gateway-with-per-key-?referralCode=NamAm4&utm_medium=integration&utm_source=template&utm_campaign=generic)
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/experiential-or-ai-gateway-with-per-key-?referralCode=NamAm4&utm_medium=integration&utm_source=template&utm_campaign=experiential)
 
 One-click [Experiential](https://github.com/experientiallabs/experiential) on Railway: an open-source AI gateway that puts OpenAI, Anthropic, Gemini, OpenRouter and your own OpenAI-compatible servers behind one OpenAI-compatible API (and the Anthropic Messages API), with a virtual key per user or agent, per-key model access, and monthly spending caps.
 
