@@ -1,0 +1,81 @@
+name: Bump Experiential version
+
+# Once a week, look for a newer Experiential release on PyPI. If there is one,
+# regenerate requirements.txt (every dependency pinned by SHA-256) for it and
+# open a pull request for you to review.
+#
+# One-time setup: Settings > Actions > General > Workflow permissions >
+# tick "Allow GitHub Actions to create and approve pull requests".
+
+on:
+  schedule:
+    - cron: "23 6 * * 1" # Mondays, 06:23 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Look for a newer Experiential release
+        id: check
+        run: |
+          set -eu
+          newest=$(curl -fsSL --retry 3 https://pypi.org/pypi/experiential/json | python3 -c 'import json,sys; print(json.load(sys.stdin)["info"]["version"])')
+          current=$(sed -n 's/^experiential==//p' requirements.in)
+          echo "Pinned: ${current}  Newest: ${newest}"
+          if [ -z "$newest" ] || [ "$newest" = "$current" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "experiential==${newest}" > requirements.in
+          uv pip compile requirements.in --python-version 3.12 \
+            --python-platform x86_64-manylinux_2_28 --generate-hashes \
+            --no-header --emit-index-url -o requirements.txt
+          grep -q "^experiential==${newest} " requirements.txt
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          echo "version=${newest}" >> "$GITHUB_OUTPUT"
+
+      - name: Check the new release installs and keeps the APIs the bootstrap uses
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          set -eu
+          uv venv -p 3.12 /tmp/venv
+          VIRTUAL_ENV=/tmp/venv uv pip install --require-hashes --no-deps -r requirements.txt
+          /tmp/venv/bin/exp --help > /dev/null
+          # Importing bootstrap.py runs only its imports (main() is guarded).
+          /tmp/venv/bin/python -I -c "import runpy; runpy.run_path('bootstrap.py', run_name='bootstrap_check'); print('bootstrap imports OK')"
+
+      - name: Open a pull request
+        if: steps.check.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.check.outputs.version }}
+          BASE: ${{ github.event.repository.default_branch }}
+        run: |
+          set -eu
+          branch="bump-experiential-${VERSION}"
+          if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
+            echo "A pull request branch for ${VERSION} already exists."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git commit -am "Bump Experiential to ${VERSION}"
+          git push origin "$branch"
+          {
+            printf 'New Experiential release on PyPI: https://pypi.org/project/experiential/%s/\n\n' "$VERSION"
+            printf 'requirements.txt now pins %s and every dependency by SHA-256, and the imports bootstrap.py relies on still resolve.\n\n' "$VERSION"
+            printf 'Before merging: deploy this branch once on Railway, then run `sh scripts/smoke-test.sh <url> <key> <admin-password> <model>`.\n'
+          } > "$RUNNER_TEMP/pr-body.md"
+          gh pr create --base "$BASE" --head "$branch" \
+            --title "Bump Experiential to ${VERSION}" \
+            --body-file "$RUNNER_TEMP/pr-body.md"
