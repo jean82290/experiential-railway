@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1e1b4b"/>
+      <stop offset="1" stop-color="#0f0d26"/>
+    </linearGradient>
+    <linearGradient id="beam" gradientUnits="userSpaceOnUse" x1="216" y1="0" x2="416" y2="0">
+      <stop offset="0" stop-color="#a78bfa"/>
+      <stop offset="1" stop-color="#f0abfc"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <!-- many inputs converge into one gate, then fan out to models -->
+  <g stroke="#c4b5fd" stroke-width="16" stroke-linecap="round" fill="none" opacity="0.85">
+    <path d="M96 150 C170 150 180 256 226 256"/>
+    <path d="M96 256 L226 256"/>
+    <path d="M96 362 C170 362 180 256 226 256"/>
+  </g>
+  <rect x="216" y="196" width="80" height="120" rx="24" fill="url(#beam)"/>
+  <rect x="244" y="232" width="24" height="48" rx="12" fill="#1e1b4b"/>
+  <g stroke="url(#beam)" stroke-width="16" stroke-linecap="round" fill="none">
+    <path d="M296 256 C340 256 350 170 416 170"/>
+    <path d="M296 256 L416 256"/>
+    <path d="M296 256 C340 256 350 342 416 342"/>
+  </g>
+  <g fill="#f5f3ff">
+    <circle cx="416" cy="170" r="22"/>
+    <circle cx="416" cy="256" r="22"/>
+    <circle cx="416" cy="342" r="22"/>
+  </g>
+</svg>
