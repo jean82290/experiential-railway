@@ -44,7 +44,7 @@ RUN pip install --no-cache-dir --disable-pip-version-check --require-hashes --no
 COPY --from=fetch /caddy /usr/local/bin/caddy
 COPY --from=fetch /CADDY-LICENSE /usr/share/doc/caddy/LICENSE
 COPY NOTICE /usr/share/doc/experiential-railway/NOTICE
-COPY Caddyfile bootstrap.py entrypoint.sh /app/
+COPY Caddyfile Caddyfile.setup bootstrap.py entrypoint.sh /app/
 RUN chmod 0755 /app/entrypoint.sh
 
 LABEL org.opencontainers.image.title="Experiential gateway for Railway" \

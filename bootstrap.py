@@ -51,6 +51,9 @@ from exp.runtime.models.providers.listing import (
 )
 
 DEFAULT_IDENTITY = "default"
+# Exit code telling the entrypoint to serve the setup page instead of the gateway:
+# Experiential refuses to start without at least one usable model.
+SETUP_REQUIRED = 3
 # Applied only to models missing from Experiential's catalog, so that clients
 # which never send max_tokens (most SDKs) are not refused.
 UNKNOWN_MODEL_MAX_OUTPUT_TOKENS = 16_384
@@ -372,14 +375,14 @@ def main() -> int:
     providers = configured_providers()
     if not providers:
         print(
-            "exp-railway: ERROR: no model provider is configured. Set at least one of "
+            "exp-railway: SETUP REQUIRED: no model provider is configured. Set at least one of "
             "OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY, OPENROUTER_API_KEY, "
             "or EXP_ENDPOINT_BASE_URL with EXP_ENDPOINT_API_KEY in your service variables, "
             "then redeploy.",
             file=sys.stderr,
             flush=True,
         )
-        return 2
+        return SETUP_REQUIRED
     changed_connections: set[str] = set()
     for name, (_provider, config) in providers.items():
         changed, _authority = manager.upsert_provider_connection(
@@ -434,12 +437,12 @@ def main() -> int:
     active_aliases = [view for view in manager.aliases() if view.active]
     if not active_aliases:
         print(
-            "exp-railway: ERROR: the gateway has no usable model. Check EXP_MODELS and the "
+            "exp-railway: SETUP REQUIRED: the gateway has no usable model. Check EXP_MODELS and the "
             "provider keys in your service variables (see the warnings above), then redeploy.",
             file=sys.stderr,
             flush=True,
         )
-        return 2
+        return SETUP_REQUIRED
 
     identities = {view.identity_id: view for view in manager.identities()}
     if DEFAULT_IDENTITY not in identities:

@@ -42,6 +42,8 @@ Out of the box Experiential cannot run on Railway, and this template fixes each 
 
 Provider keys stay in Railway's variables: Experiential stores only the variable *name*. Change a key and redeploy to rotate it.
 
+Deployed without any provider key? Experiential cannot start without a model, so the service shows a setup page instead: the health check passes and every API call answers `503 setup_required` with what to set. Add a key in **Variables** and redeploy.
+
 ## After deploying
 
 1. Open the service's **Deployments > Deploy Logs**. The first boot prints your gateway key once:

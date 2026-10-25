@@ -1,0 +1,27 @@
+# Served instead of the gateway while no model provider is configured.
+#
+# Experiential refuses to start without at least one usable model, so a fresh
+# deploy with no provider key would crash-loop. Instead the service stays up,
+# passes Railway's health check, and answers every API call with a clear 503
+# saying what to set. Add a provider key in Variables and redeploy.
+{
+	admin off
+	auto_https off
+	persist_config off
+	log {
+		level WARN
+	}
+}
+
+:{$PORT} {
+	header Content-Type "application/json; charset=utf-8"
+
+	@health path /health/live /health/ready
+	handle @health {
+		respond `{"status":"setup_required","message":"Add a model provider key to the service variables and redeploy."}` 200
+	}
+
+	handle {
+		respond `{"error":{"message":"This Experiential gateway has no model provider yet. Set OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY or OPENROUTER_API_KEY in the service variables (and check EXP_MODELS), then redeploy.","type":"setup_required","code":"setup_required"}}` 503
+	}
+}

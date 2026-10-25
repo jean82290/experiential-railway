@@ -56,12 +56,23 @@ if [ -n "${EXP_ADMIN_PASSWORD:-}" ]; then
     || die "could not hash EXP_ADMIN_PASSWORD"
 else
   # No password set: lock the admin routes with a random one nobody knows.
-  EXP_ADMIN_PASSWORD_HASH=$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n' | caddy hash-password --algorithm bcrypt --bcrypt-cost 11)
+  random_password=$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')
+  EXP_ADMIN_PASSWORD_HASH=$(printf '%s\n' "$random_password" | caddy hash-password --algorithm bcrypt --bcrypt-cost 11) \
+    || die "could not hash a random admin password"
+  unset random_password
   log "EXP_ADMIN_PASSWORD is empty: the organization-wide /usage page is disabled"
 fi
 export EXP_ADMIN_PASSWORD_HASH EXP_INTERNAL_PORT="$INTERNAL_PORT" PORT
 
-python -I "$APP_DIR/bootstrap.py" || die "gateway configuration failed (see the messages above)"
+bootstrap_status=0
+python -I "$APP_DIR/bootstrap.py" || bootstrap_status=$?
+if [ "$bootstrap_status" -eq 3 ]; then
+  # No usable model yet (Experiential will not start without one). Stay up
+  # with a page that says what to set, instead of crash-looping.
+  log "serving the setup page on port $PORT until a provider key is set"
+  exec caddy run --config "$APP_DIR/Caddyfile.setup" --adapter caddyfile
+fi
+[ "$bootstrap_status" -eq 0 ] || die "gateway configuration failed (see the messages above)"
 
 capture_flag=(--ghost)
 case "${EXP_CAPTURE_TRAFFIC:-false}" in
