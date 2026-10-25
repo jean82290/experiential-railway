@@ -1,0 +1,13 @@
+This repository packages the Experiential gateway for Railway. It does not
+modify Experiential.
+
+Experiential (https://github.com/experientiallabs/experiential) is developed
+by Experiential Labs and licensed under the Apache License, Version 2.0. The
+image installs the unmodified release from PyPI; its license is installed at
+/usr/local/lib/python3.12/site-packages/experiential-<version>.dist-info/licenses/LICENSE.
+
+Caddy (https://caddyserver.com) is licensed under the Apache License,
+Version 2.0; its license is installed at /usr/share/doc/caddy/LICENSE.
+
+This template is community-maintained and is not affiliated with or endorsed
+by Experiential Labs.

@@ -1,0 +1,8 @@
+.git
+.github
+scripts
+assets
+*.md
+LICENSE
+requirements.in
+railway.json

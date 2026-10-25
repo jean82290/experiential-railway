@@ -1,0 +1,4 @@
+# Shell scripts must keep Unix line endings or the container will not start.
+*.sh text eol=lf
+Dockerfile text eol=lf
+Caddyfile text eol=lf
