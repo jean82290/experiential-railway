@@ -84,17 +84,34 @@ esac
 
 version=$(python -I -c 'import importlib.metadata as m; print(m.version("experiential"))' 2>/dev/null || echo unknown)
 log "starting Experiential $version on 127.0.0.1:$INTERNAL_PORT, public port $PORT"
-exp run --root "$EXP_ROOT" --port "$INTERNAL_PORT" --non-interactive "${capture_flag[@]}" &
-gateway_pid=$!
-caddy run --config "$APP_DIR/Caddyfile" --adapter caddyfile &
-caddy_pid=$!
-
+gateway_pid=""
+caddy_pid=""
 stopping=0
 stop() {
   stopping=1
-  kill -TERM "$gateway_pid" "$caddy_pid" 2>/dev/null || true
+  for pid in $gateway_pid $caddy_pid; do
+    kill -TERM "$pid" 2>/dev/null || true
+  done
 }
 trap stop TERM INT
+
+exp run --root "$EXP_ROOT" --port "$INTERNAL_PORT" --non-interactive "${capture_flag[@]}" &
+gateway_pid=$!
+
+# Open the public port only once the gateway accepts connections (a few
+# seconds), so the first health checks do not log proxy errors.
+for _ in $(seq 1 240); do
+  [ "$stopping" -eq 0 ] && kill -0 "$gateway_pid" 2>/dev/null || break
+  (exec 3<>"/dev/tcp/127.0.0.1/$INTERNAL_PORT") 2>/dev/null && break
+  sleep 0.5
+done
+if [ "$stopping" -eq 1 ]; then
+  wait "$gateway_pid" 2>/dev/null || true
+  exit 0
+fi
+
+caddy run --config "$APP_DIR/Caddyfile" --adapter caddyfile &
+caddy_pid=$!
 
 status=0
 wait -n "$gateway_pid" "$caddy_pid" || status=$?
