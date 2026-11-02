@@ -63,19 +63,28 @@ jobs:
           set -eu
           branch="bump-experiential-${VERSION}"
           if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
-            echo "A pull request branch for ${VERSION} already exists."
-            exit 0
+            # The branch was pushed by an earlier run. Only stop if its pull
+            # request exists too: an earlier run may have failed to open it.
+            if [ -n "$(gh pr list --head "$branch" --state all --json number -q '.[].number')" ]; then
+              echo "A pull request for ${VERSION} already exists."
+              exit 0
+            fi
+            echo "Branch ${branch} exists without a pull request: opening it now."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+            git checkout -b "$branch"
+            git commit -am "Bump Experiential to ${VERSION}"
+            git push origin "$branch"
           fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
-          git checkout -b "$branch"
-          git commit -am "Bump Experiential to ${VERSION}"
-          git push origin "$branch"
           {
             printf 'New Experiential release on PyPI: https://pypi.org/project/experiential/%s/\n\n' "$VERSION"
             printf 'requirements.txt now pins %s and every dependency by SHA-256, and the imports bootstrap.py relies on still resolve.\n\n' "$VERSION"
             printf 'Before merging: deploy this branch once on Railway, then run `sh scripts/smoke-test.sh <url> <key> <admin-password> <model>`.\n'
           } > "$RUNNER_TEMP/pr-body.md"
-          gh pr create --base "$BASE" --head "$branch" \
-            --title "Bump Experiential to ${VERSION}" \
-            --body-file "$RUNNER_TEMP/pr-body.md"
+          if ! gh pr create --base "$BASE" --head "$branch" \
+              --title "Bump Experiential to ${VERSION}" \
+              --body-file "$RUNNER_TEMP/pr-body.md"; then
+            echo "::error::Could not open the pull request. If the error says GitHub Actions is not permitted to create pull requests, tick Settings > Actions > General > Workflow permissions > 'Allow GitHub Actions to create and approve pull requests', then run this workflow again. Or open it by hand: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/compare/${BASE}...${branch}?expand=1"
+            exit 1
+          fi
